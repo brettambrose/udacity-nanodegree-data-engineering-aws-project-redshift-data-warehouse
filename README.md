@@ -153,7 +153,7 @@ WHERE t.weekday = 6
 ```
 
 ## Local Deployment and Execution Steps
-We will be using an the Redshift AWS Service for this project. Click [here](https://docs.aws.amazon.com/redshift/latest/gsg/new-user-serverless.html) to learn more about getting started with Amazon Redshift Serverless Data Warehouses.  
+We will be using the Redshift AWS Service for this project. Click [here](https://docs.aws.amazon.com/redshift/latest/gsg/new-user-serverless.html) to learn more about getting started with Amazon Redshift Serverless Data Warehouses.  
 
 We will be using Infrastructure as Code (IaC) to deploy our Redshift cluster. For manual steps to setting up IAM Roles and Redshift, please refer to the documentation in this repository under [files](https://github.com/brettambrose/udacity-nanodegree-data-engineering-aws-project-redshift-data-warehouse/tree/master/files).
 
