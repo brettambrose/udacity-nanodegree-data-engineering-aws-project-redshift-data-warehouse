@@ -32,7 +32,7 @@ The log files in the dataset you'll be working with are partitioned by year and 
 
 And below is an example of what the data in a log file, 2018-11-12-events.json, looks like.
 
-![log file data](Images\log_data_example.jpg)
+![log file data](https://github.com/brettambrose/udacity-nanodegree-data-engineering-aws-project-redshift-data-warehouse/blob/master/images/log_data_example.jpg)
 
 To properly read the log data, you'll need the following metadata file:
 
@@ -155,7 +155,7 @@ WHERE t.weekday = 6
 ## Local Deployment and Execution Steps
 We will be using an the Redshift AWS Service for this project. Click [here](https://docs.aws.amazon.com/redshift/latest/gsg/new-user-serverless.html) to learn more about getting started with Amazon Redshift Serverless Data Warehouses.  
 
-We will be using Infrastructure as Code (IaC) to deploy our Redshift cluster. For manual steps to setting up IAM Roles and Redshift, please refer to the documentation in this repository under [Files](Files).
+We will be using Infrastructure as Code (IaC) to deploy our Redshift cluster. For manual steps to setting up IAM Roles and Redshift, please refer to the documentation in this repository under [files](https://github.com/brettambrose/udacity-nanodegree-data-engineering-aws-project-redshift-data-warehouse/tree/master/files).
 
 All executable code is written in Python.
 
