@@ -4,9 +4,14 @@ import configparser
 config = configparser.ConfigParser()
 config.read('dwh.cfg')
 
+#AWS
 KEY = config.get("AWS","KEY")
 SECRET = config.get("AWS","SECRET")
+
+# IAM
 IAM_ROLE_NAME = config.get("IAM_ROLE","IAM_ROLE_NAME")
+
+# CLUSTER CONFIGURATIONS
 CLUSTER_IDENTIFIER = config.get("INFRASTRUCTURE","CLUSTER_IDENTIFIER")
 
 print("*******************************************")
