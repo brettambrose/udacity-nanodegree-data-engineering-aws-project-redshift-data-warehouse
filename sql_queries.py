@@ -243,46 +243,9 @@ get_count_artists_table = "SELECT COUNT(1) FROM artists"
 get_count_songs_table = "SELECT COUNT(1) FROM songs"
 get_count_time_table = "SELECT COUNT(1) FROM time"
 
-# COMMON USER QUERIES
-
-get_artist_songplay_popularity = """
-SELECT
- a.name AS artist_name,
- COUNT(sp.songplay_id) AS songplay_count
-FROM songplays sp
-JOIN artists a
- ON (sp.artist_id = a.artist_id)
-GROUP BY
- a.artist_id,
- a.name
-ORDER BY
- COUNT(sp.songplay_id) desc
-"""
-
-get_count_active_users_per_level = """
-SELECT
- u.level,
- COUNT(sp.songplay_id) AS songplay_count
-FROM songplays sp
-JOIN users u
- ON (sp.user_id = u.user_id)
-GROUP BY
- u.level
-"""
-
-get_list_songplays_on_saturday = """
-SELECT
- sp.*
-FROM songplays sp
-JOIN time t
- ON (sp.start_time = t.start_time)
-WHERE t.weekday = 6
-"""
-
 # QUERY LISTS
 create_table_queries = [staging_events_table_create, staging_songs_table_create, songplays_table_create, users_table_create, songs_table_create, artists_table_create, time_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
 copy_table_queries = [staging_events_copy, staging_songs_copy]
 insert_table_queries = [songplays_table_insert, users_table_insert, songs_table_insert, artists_table_insert, time_table_insert]
 count_table_queries = [get_count_songplay, get_count_users_table, get_count_artists_table, get_count_songs_table, get_count_time_table]
-analytical_queries = [get_artist_songplay_popularity, get_count_active_users_per_level, get_list_songplays_on_saturday]
