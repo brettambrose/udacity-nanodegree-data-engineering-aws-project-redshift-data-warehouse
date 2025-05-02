@@ -2,8 +2,8 @@ import boto3
 import configparser
 import os
 
-dwh_config = configparser.ConfigParser()
-dwh_config.read("dwh.cfg")
+main_config = configparser.ConfigParser()
+main_config.read("dwh.cfg")
 
 aws_creds_path = os.path.expanduser("~\\.aws\\credentials")
 aws_creds = configparser.ConfigParser()
@@ -14,10 +14,10 @@ aws_config = configparser.ConfigParser()
 aws_config.read(aws_config_path)
 
 # CLUSTER
-CLUSTER_IDENTIFIER    = dwh_config.get("CLUSTER","CLUSTER_IDENTIFIER")
+CLUSTER_IDENTIFIER    = main_config.get("CLUSTER","CLUSTER_IDENTIFIER")
 
 # IAM
-IAM_ROLE_NAME         = dwh_config.get("IAM_ROLE","IAM_ROLE_NAME")
+IAM_ROLE_NAME         = main_config.get("IAM_ROLE","IAM_ROLE_NAME")
 
 # AWS CREDENTIALS & CONFIG
 KEY                   = aws_creds.get("default", "aws_access_key_id")

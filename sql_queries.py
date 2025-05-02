@@ -1,4 +1,5 @@
 import configparser
+import os
 
 # CONFIG
 main_config = configparser.ConfigParser()

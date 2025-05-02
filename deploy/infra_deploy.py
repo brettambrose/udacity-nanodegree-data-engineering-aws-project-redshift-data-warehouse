@@ -4,8 +4,8 @@ import psycopg2
 import configparser
 import os
 
-dwh_config = configparser.ConfigParser()
-dwh_config.read("dwh.cfg")
+main_config = configparser.ConfigParser()
+main_config.read("dwh.cfg")
 
 aws_creds_path = os.path.expanduser("~\\.aws\\credentials")
 aws_creds = configparser.ConfigParser()
@@ -16,20 +16,20 @@ aws_config = configparser.ConfigParser()
 aws_config.read(aws_config_path)
 
 # CLUSTER
-CLUSTER_IDENTIFIER    = dwh_config.get("CLUSTER","CLUSTER_IDENTIFIER")
-CLUSTER_TYPE          = dwh_config.get("CLUSTER","CLUSTER_TYPE")
-NODE_TYPE             = dwh_config.get("CLUSTER","NODE_TYPE")
-NUM_NODES             = dwh_config.get("CLUSTER","NUM_NODES")
+CLUSTER_IDENTIFIER    = main_config.get("CLUSTER","CLUSTER_IDENTIFIER")
+CLUSTER_TYPE          = main_config.get("CLUSTER","CLUSTER_TYPE")
+NODE_TYPE             = main_config.get("CLUSTER","NODE_TYPE")
+NUM_NODES             = main_config.get("CLUSTER","NUM_NODES")
 
 # DATABASE
-DB_HOST               = dwh_config.get("DB","DB_HOST")
-DB_NAME               = dwh_config.get("DB","DB_NAME")
-DB_USER               = dwh_config.get("DB","DB_USER")
-DB_PASSWORD           = dwh_config.get("DB","DB_PASSWORD")
-DB_PORT               = dwh_config.get("DB","DB_PORT")
+DB_HOST               = main_config.get("DB","DB_HOST")
+DB_NAME               = main_config.get("DB","DB_NAME")
+DB_USER               = main_config.get("DB","DB_USER")
+DB_PASSWORD           = main_config.get("DB","DB_PASSWORD")
+DB_PORT               = main_config.get("DB","DB_PORT")
 
 # IAM
-IAM_ROLE_NAME         = dwh_config.get("IAM_ROLE","IAM_ROLE_NAME")
+IAM_ROLE_NAME         = main_config.get("IAM_ROLE","IAM_ROLE_NAME")
 
 # AWS CREDENTIALS & CONFIG
 KEY                   = aws_creds.get("default", "aws_access_key_id")
@@ -161,19 +161,19 @@ print("Adding Cluster endpoint to dwh.cfg file...")
 
 if len(DB_HOST) == 0:
     try:
-        dwh_config_override = configparser.ConfigParser()
-        dwh_config_override.read("dwh.cfg")
+        main_config_override = configparser.ConfigParser()
+        main_config_override.read("dwh.cfg")
 
-        dwh_config_override["DB"]["DB_HOST"] = clusterHost
+        main_config_override["DB"]["DB_HOST"] = clusterHost
 
         with open("dwh.cfg", "w") as configfile:
-            dwh_config_override.write(configfile)
+            main_config_override.write(configfile)
     
         print("Cluster endpoint added to dwh.cfg")
 
-        dwh_config.read("dwh.cfg")
+        main_config.read("dwh.cfg")
 
-        DB_HOST = dwh_config.get("DB","DB_HOST")
+        DB_HOST = main_config.get("DB","DB_HOST")
 
     except Exception as e:
         print(e)
