@@ -1,5 +1,4 @@
 # Sparkify Data Warehouse in AWS Redshift
-
 A music streaming startup, Sparkify, has grown their user base and song database and want to move their processes and data onto the cloud. Their data resides in S3, in a directory of JSON logs on user activity on the app, as well as a directory with JSON metadata on the songs in their app.
 
 As their data engineer, you are tasked with building an ETL pipeline that extracts their data from S3, stages them in Redshift, and transforms data into a set of dimensional tables for their analytics team to continue finding insights into what songs their users are listening to.
@@ -182,7 +181,7 @@ create_tables.py, etl.py, and dq_checks.py will use this file during their respe
 ### Step 1: Deploy infrastructure using IaC and finalize dwh.cfg
 We are using Infrastructure as Code (IaC) to configure and deploy our Redshift cluster. 
 
-This is accomplished by executing [cluster_deploy.py](/cluster_deploy.py), which will...
+This is accomplished by executing [infra_deploy.py](/deploy/infra_deploy.py), which will...
 1. Create an IAM Role that has permission to use the Redshift service on AWS
 2. Attach the AmazonS3ReadOnlyAccess policy to the IAM Role to allow restricted access to the udacity-dend S3 bucket
 3. Populate local ~/.aws/config with IAM Role ARN
@@ -208,7 +207,7 @@ Execute [dq_checks.py](/dq_check.py), which will import SELECT statements from [
 ### Step 6: Delete the IAM Role and shut down the Redshift cluster
 We want to be efficient with costs associated with provisioned Redshift clusters. Given this is a self-contained project to learning purposes, we will want to delete the IAM role and Redshift cluster we spun up [Step 1](#step-1-local-setup-using-iac) after we are finished.
 
-To do this, execute [cluster_shutdown.py](/cluster_shutdown.py)
+To do this, execute [infra_decomm.py](/deploy/infra_decomm.py)
 
 
 
