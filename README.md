@@ -191,18 +191,18 @@ This is accomplished by executing [infra_deploy.py](/deploy/infra_deploy.py), wh
 7. Validate cluster access
 
 ### Step 2: Create the staging and Star Schema tables
-Execute [create_tables.py](/create_tables.py), which will import DDL and DML SQL Statements from [sql_queries.py](/sql_queries.py) to execute the following steps:
+Execute [create_tables.py](/create_tables.py), which will import DDL and DML SQL Statements from [sql_queries.py](/src/sql_queries.py) to execute the following steps:
 1. DROP ALL tables from the dwh database
 2. CREATE 1 fact table and 4 dimension tables
 
 ### Step 3: Run the ETL to stage the S3 datasets and populate the Star Schema tables
-Execute [etl.py](/etl.py). wich will import COPY and INSERT statements from [sql_queries.py](/sql_queries.py) to execute the following steps:
+Execute [etl.py](/src/etl.py). wich will import COPY and INSERT statements from [sql_queries.py](/src/sql_queries.py) to execute the following steps:
 1. COPY from s3://udacity-dend/log-data into staging_events using the log_json_path.json metadata file
 2. COPY from s3://udacity-dend/song_data into staging_songs
 3. Perform transformations staging table data to INSERT into 1 fact table and 4 dimension tables
 
 ### Step 4: Perform data quality checks on the Star Schema tables
-Execute [dq_checks.py](/dq_check.py), which will import SELECT statements from [sql_queries.py](/sql_queries.py) to gather and return row counts for each Data Warehouse target table.
+Execute [dq_checks.py](/src/dq_check.py), which will import SELECT statements from [sql_queries.py](/src/sql_queries.py) to gather and return row counts for each Data Warehouse target table.
 
 ### Step 6: Delete the IAM Role and shut down the Redshift cluster
 We want to be efficient with costs associated with provisioned Redshift clusters. Given this is a self-contained project to learning purposes, we will want to delete the IAM role and Redshift cluster we spun up [Step 1](#step-1-local-setup-using-iac) after we are finished.
