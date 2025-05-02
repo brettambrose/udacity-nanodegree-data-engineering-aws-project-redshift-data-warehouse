@@ -4,6 +4,14 @@ A music streaming startup, Sparkify, has grown their user base and song database
 
 As their data engineer, you are tasked with building an ETL pipeline that extracts their data from S3, stages them in Redshift, and transforms data into a set of dimensional tables for their analytics team to continue finding insights into what songs their users are listening to.
 
+## AWS PREREQUSITES
+1. An AWS Account with an IAM User with the following permissions
+    - AdminstratorAccess
+    - AmazonRedshiftFullAccess
+    - AmazonS3FullAccess
+2. Local AWS CLI (download here: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+    - Local .aws file will need to be configured (see: https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html#cli-configure-files-methods)
+
 ## Project Details
 In this project, you'll apply what you've learned in [Udacity Data Engineering with AWS](https://www.udacity.com/enrollment/nd027) Nanodegree program section on Cloud Data Warehouses and ETL to build an ETL pipeline for a database hosted on Redshift. To complete the project, you will need to load data from S3 to staging tables on Redshift and execute SQL statements that create the analytics tables from these staging tables.
 
@@ -171,52 +179,36 @@ The sql_query.py script contains the DDL and DML statements comprising the datab
 
 create_tables.py, etl.py, and dq_checks.py will use this file during their respective execution steps
 
-### Step 1: Populate dwh.cfg AWS variables
-The AWS KEY and SECRET variables are empty in the dwh.cfg.  Local users will need to populate these variables with their IAM user credentials.
-```
-[AWS]
-KEY=#yourAWSKey
-SECRET=#yourAWSSecret
-```
-### Step 2: Deploy infrastructure using IaC and finalize dwh.cfg
-We are using Infrastructure as Code (IaC) to configure and deploy our Redshift cluster. This is accomplished by executing **cluster_deploy.py**.
+### Step 1: Deploy infrastructure using IaC and finalize dwh.cfg
+We are using Infrastructure as Code (IaC) to configure and deploy our Redshift cluster. 
 
-**cluster_deploy.py** will execute the following steps:
+This is accomplished by executing [cluster_deploy.py](/cluster_deploy.py), which will...
 1. Create an IAM Role that has permission to use the Redshift service on AWS
 2. Attach the AmazonS3ReadOnlyAccess policy to the IAM Role to allow restricted access to the udacity-dend S3 bucket
-3. Create the Redshift cluster
-4. Validate cluster access
-5. **MOST IMPORTANTLY** output the HOST and ARN variables, which the local user will need to copy and paste into **dwh.cfg**
+3. Populate local ~/.aws/config with IAM Role ARN
+4. Create the Redshift cluster
+5. Configure ingress rules on default AWS Security Group with Redshift DB port
+6. Populate [dwh.cfg](/dwh.cfg) **DB_HOST** variable with the Redshift cluster endpoint
+7. Validate cluster access
 
-Example output:
-```
-Use the following for HOST and ARN variables in DWH Config:
-
-[CLUSTER]
-HOST=redshift-cluster-1.cs56yxbmjkjg.us-east-1.redshift.amazonaws.com
-
-[IAM_ROLE]
-ARN=arn:aws:iam::565095388474:role/myRedshiftRole
-```
-
-### Step 3: Create the staging and Star Schema tables
-Execute **create_tables.py**, which will import DDL and DML SQL Statements from **sql_queries.py** to execute the following steps:
+### Step 2: Create the staging and Star Schema tables
+Execute [create_tables.py](/create_tables.py), which will import DDL and DML SQL Statements from [sql_queries.py](/sql_queries.py) to execute the following steps:
 1. DROP ALL tables from the dwh database
 2. CREATE 1 fact table and 4 dimension tables
 
-### Step 4: Run the ETL to stage the S3 datasets and populate the Star Schema tables
-Execute **etl.py**. wich will import COPY and INSERT statements from **sql_queries.py** to execute the following steps:
+### Step 3: Run the ETL to stage the S3 datasets and populate the Star Schema tables
+Execute [etl.py](/etl.py). wich will import COPY and INSERT statements from [sql_queries.py](/sql_queries.py) to execute the following steps:
 1. COPY from s3://udacity-dend/log-data into staging_events using the log_json_path.json metadata file
 2. COPY from s3://udacity-dend/song_data into staging_songs
 3. Perform transformations staging table data to INSERT into 1 fact table and 4 dimension tables
 
-### Step 5: Perform data quality checks on the Star Schema tables
-Execute **dq_checks.py**, which will import SELECT statements from **sql_queries.py** to gather and return row counts for each Data Warehouse target table.
+### Step 4: Perform data quality checks on the Star Schema tables
+Execute [dq_checks.py](/dq_check.py), which will import SELECT statements from [sql_queries.py](/sql_queries.py) to gather and return row counts for each Data Warehouse target table.
 
 ### Step 6: Delete the IAM Role and shut down the Redshift cluster
 We want to be efficient with costs associated with provisioned Redshift clusters. Given this is a self-contained project to learning purposes, we will want to delete the IAM role and Redshift cluster we spun up [Step 1](#step-1-local-setup-using-iac) after we are finished.
 
-To do this, execute **cluster_shutdown.py**
+To do this, execute [cluster_shutdown.py](/cluster_shutdown.py)
 
 
 
