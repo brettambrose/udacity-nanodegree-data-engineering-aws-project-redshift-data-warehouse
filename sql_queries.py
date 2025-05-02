@@ -1,8 +1,12 @@
 import configparser
 
 # CONFIG
-config = configparser.ConfigParser()
-config.read('dwh.cfg')
+main_config = configparser.ConfigParser()
+main_config.read('dwh.cfg')
+
+aws_config_path = os.path.expanduser("~\\.aws\\config")
+aws_config = configparser.ConfigParser()
+aws_config.read(aws_config_path)
 
 # DROP TABLES
 
@@ -120,9 +124,9 @@ staging_events_copy = ("""
  JSON {}
  timeformat as 'epochmillisecs'
 """).format(
-    config.get("S3","LOG_DATA"),
-    config.get("IAM_ROLE","ARN"),
-    config.get("S3","LOG_JSONPATH")
+    main_config.get("S3","LOG_DATA"),
+    aws_config.get("profile Redshift","role_arn"),
+    main_config.get("S3","LOG_JSONPATH")
 )
 
 staging_songs_copy = ("""
@@ -132,8 +136,8 @@ staging_songs_copy = ("""
  region 'us-west-2'
  JSON 'auto'
 """).format(
-    config.get("S3","SONG_DATA"),
-    config.get("IAM_ROLE","ARN")
+    main_config.get("S3","SONG_DATA"),
+    aws_config.get("profile Redshift","role_arn")
 )
 
 # FINAL TABLES
