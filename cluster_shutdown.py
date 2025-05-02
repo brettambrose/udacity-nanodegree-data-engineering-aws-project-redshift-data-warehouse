@@ -1,44 +1,75 @@
 import boto3
 import configparser
+import os
 
-config = configparser.ConfigParser()
-config.read('dwh.cfg')
+dwh_config = configparser.ConfigParser()
+dwh_config.read("dwh.cfg")
 
-#AWS
-KEY = config.get("AWS","KEY")
-SECRET = config.get("AWS","SECRET")
+aws_creds_path = os.path.expanduser("~\\.aws\\credentials")
+aws_creds = configparser.ConfigParser()
+aws_creds.read(aws_creds_path)
+
+aws_config_path = os.path.expanduser("~\\.aws\\config")
+aws_config = configparser.ConfigParser()
+aws_config.read(aws_config_path)
+
+# CLUSTER
+CLUSTER_IDENTIFIER    = dwh_config.get("CLUSTER","CLUSTER_IDENTIFIER")
 
 # IAM
-IAM_ROLE_NAME = config.get("IAM_ROLE","IAM_ROLE_NAME")
+IAM_ROLE_NAME         = dwh_config.get("IAM_ROLE","IAM_ROLE_NAME")
 
-# CLUSTER CONFIGURATIONS
-CLUSTER_IDENTIFIER = config.get("INFRASTRUCTURE","CLUSTER_IDENTIFIER")
+# AWS CREDENTIALS & CONFIG
+KEY                   = aws_creds.get("default", "aws_access_key_id")
+SECRET                = aws_creds.get("default", "aws_secret_access_key")
+REGION                = aws_config.get("default", "region")
 
-print("*******************************************")
-print("Establishing boto3 iam and redshift clients")
-iam = boto3.client('iam',aws_access_key_id=KEY,
-                     aws_secret_access_key=SECRET,
-                     region_name='us-east-1'
-                  )
+print("**********************************************")
+print("Establishing boto3 resources and clients...")
+
+iam_client = boto3.client('iam',
+                          aws_access_key_id=KEY,
+                          aws_secret_access_key=SECRET,
+                          region_name=REGION
+                         )
 
 redshift = boto3.client('redshift',
                        aws_access_key_id=KEY,
                        aws_secret_access_key=SECRET,
-                       region_name="us-east-1"
+                       region_name=REGION
                        )
-print("*******************")
+
+print("**********************************************")
 print("Deleting Cluster...")
 
-redshift.delete_cluster( ClusterIdentifier=CLUSTER_IDENTIFIER,  SkipFinalClusterSnapshot=True)
+try:
+    redshift.delete_cluster(
+        ClusterIdentifier=CLUSTER_IDENTIFIER,
+        SkipFinalClusterSnapshot=True
+        )
+    
+    print(redshift.describe_clusters(ClusterIdentifier=CLUSTER_IDENTIFIER)['Clusters'][0])
 
-print(redshift.describe_clusters(ClusterIdentifier=CLUSTER_IDENTIFIER)['Clusters'][0])
+except Exception as e:
+    print(e)
 
-print("*******************************")
+print("**********************************************")
 print("Detatching IAM Role policies...")
 
-iam.detach_role_policy(RoleName=IAM_ROLE_NAME, PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess")
+try:
+    iam_client.detach_role_policy(
+        RoleName=IAM_ROLE_NAME,
+        PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+        )
 
-print("*****************")
+except Exception as e:
+    print(e)
+
+print("**********************************************")
 print("Deleting IAM Role")
 
-iam.delete_role(RoleName=IAM_ROLE_NAME)
+try:
+    iam_client.delete_role(RoleName=IAM_ROLE_NAME)
+
+except Exception as e:
+    print(e)

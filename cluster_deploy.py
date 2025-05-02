@@ -1,50 +1,73 @@
 import boto3
 import json
-from botocore.exceptions import ClientError
 import psycopg2
 import configparser
+import os
 
-config = configparser.ConfigParser()
-config.read('dwh.cfg')
+dwh_config = configparser.ConfigParser()
+dwh_config.read("dwh.cfg")
 
-# AWS CREDENTIALS
-KEY                = config.get("AWS","KEY")
-SECRET             = config.get("AWS","SECRET")
+aws_creds_path = os.path.expanduser("~\\.aws\\credentials")
+aws_creds = configparser.ConfigParser()
+aws_creds.read(aws_creds_path)
 
-# IAM ROLES
-IAM_ROLE_NAME      = config.get("IAM_ROLE","IAM_ROLE_NAME")
+aws_config_path = os.path.expanduser("~\\.aws\\config")
+aws_config = configparser.ConfigParser()
+aws_config.read(aws_config_path)
 
-# CLUSTER CONFIGURATIONS
-CLUSTER_IDENTIFIER = config.get("INFRASTRUCTURE","CLUSTER_IDENTIFIER")
-CLUSTER_TYPE       = config.get("INFRASTRUCTURE","CLUSTER_TYPE")
-NODE_TYPE          = config.get("INFRASTRUCTURE","NODE_TYPE")
-NUM_NODES          = config.get("INFRASTRUCTURE","NUM_NODES")
+# CLUSTER
+CLUSTER_IDENTIFIER    = dwh_config.get("CLUSTER","CLUSTER_IDENTIFIER")
+CLUSTER_TYPE          = dwh_config.get("CLUSTER","CLUSTER_TYPE")
+NODE_TYPE             = dwh_config.get("CLUSTER","NODE_TYPE")
+NUM_NODES             = dwh_config.get("CLUSTER","NUM_NODES")
 
-# DATABASE CONFIGURATIONS
-DB_NAME            = config.get("CLUSTER","DB_NAME")
-DB_USER            = config.get("CLUSTER","DB_USER")
-DB_PASSWORD        = config.get("CLUSTER","DB_PASSWORD")
-DB_PORT            = config.get("CLUSTER","DB_PORT")
+# DATABASE
+DB_HOST               = dwh_config.get("DB","DB_HOST")
+DB_NAME               = dwh_config.get("DB","DB_NAME")
+DB_USER               = dwh_config.get("DB","DB_USER")
+DB_PASSWORD           = dwh_config.get("DB","DB_PASSWORD")
+DB_PORT               = dwh_config.get("DB","DB_PORT")
 
-print("*******************************************")
-print("Establishing boto3 iam and redshift clients")
+# IAM
+IAM_ROLE_NAME         = dwh_config.get("IAM_ROLE","IAM_ROLE_NAME")
 
-iam = boto3.client('iam',aws_access_key_id=KEY,
-                     aws_secret_access_key=SECRET,
-                     region_name='us-east-1'
-                  )
+# AWS CREDENTIALS & CONFIG
+KEY                   = aws_creds.get("default", "aws_access_key_id")
+SECRET                = aws_creds.get("default", "aws_secret_access_key")
+REGION                = aws_config.get("default", "region")
+
+print("**********************************************")
+print("Establishing boto3 resources and clients...")
+
+iam_client = boto3.client('iam',
+                          aws_access_key_id=KEY,
+                          aws_secret_access_key=SECRET,
+                          region_name=REGION
+                         )
 
 redshift = boto3.client('redshift',
                        aws_access_key_id=KEY,
                        aws_secret_access_key=SECRET,
-                       region_name="us-east-1"
+                       region_name=REGION
                        )
 
-print("**********************************************************")
-print("Creating IAM Role with permissions to use Redshift service")
+ec2 = boto3.resource('ec2',
+                     aws_access_key_id=KEY,
+                     aws_secret_access_key=SECRET,
+                     region_name=REGION
+                     )
+
+ec2_client = boto3.client("ec2",
+                          aws_access_key_id=KEY,
+                          aws_secret_access_key=SECRET,
+                          region_name=REGION
+                          )
+
+print("**********************************************")
+print("Creating IAM Role")
 
 try:
-    dwhRole = iam.create_role(
+    dwhRole = iam_client.create_role(
         Path='/',
         RoleName=IAM_ROLE_NAME,
         Description = "Allows Redshift clusters to call AWS services on your behalf.",
@@ -57,67 +80,131 @@ try:
 except Exception as e:
     print(e)
 
-print("************************************************")
-print("Attaching S3 Read Only access policy to IAM Role")
-
-iam.attach_role_policy(RoleName=IAM_ROLE_NAME,
-                       PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-                      )['ResponseMetadata']['HTTPStatusCode']
-
-ARN = iam.get_role(RoleName=IAM_ROLE_NAME)['Role']['Arn']
-
-print("***********************************")
-print('Creating cluster...')
+print("**********************************************")
+print("Updating local .aws/config file with Role ARN")
 
 try:
-    response = redshift.create_cluster(        
-        #HW
+    aws_config["profile Redshift"]
+    print("Role ARN already exists in .aws/config")
+
+    IAM_ROLE_ARN = aws_config.get("profile Redshift","role_arn")
+    
+except:
+    try:
+        role_arn = iam_client.get_role(RoleName=IAM_ROLE_NAME)['Role']['Arn']
+
+        aws_config_override = configparser.ConfigParser()
+        aws_config_override.read(aws_config_path)
+
+        aws_config_override["profile Redshift"] = {"role_arn": role_arn}
+        
+        with open(aws_config_path, "w") as configfile:
+            aws_config_override.write(configfile)
+            
+        print("Role ARN added to .aws/config ")
+
+        aws_config.read(aws_config_path)
+
+        IAM_ROLE_ARN = aws_config.get("profile Redshift","role_arn")
+
+    except Exception as e:
+        print(e)
+
+print("**********************************************")
+print("Attaching policies to IAM Role")
+
+try:
+    iam_client.attach_role_policy(RoleName=IAM_ROLE_NAME,
+                                  PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+                                 )
+
+except Exception as e:
+    print(e)
+
+print("**********************************************")
+print("Creating cluster...")
+
+try:
+    response = redshift.create_cluster(
         ClusterType=CLUSTER_TYPE,
         NodeType=NODE_TYPE,
         NumberOfNodes=int(NUM_NODES),
-
-        #Identifiers & Credentials
         DBName=DB_NAME,
         ClusterIdentifier=CLUSTER_IDENTIFIER,
         MasterUsername=DB_USER,
         MasterUserPassword=DB_PASSWORD,
         PubliclyAccessible=True,
-        
-        #Roles (for s3 access)
-        IamRoles=[ARN]
+        IamRoles=[IAM_ROLE_ARN]
     )
+    
 except Exception as e:
     print(e)
 
+print("**********************************************")
+print("Waiting for cluster availability...")
+
 while redshift.describe_clusters(ClusterIdentifier=CLUSTER_IDENTIFIER)['Clusters'][0]['ClusterStatus'] != 'available':
     False
-else:
 
-    print("Cluster created!")
-    print('Waiting for cluster availability...')
-    
+else:
     while redshift.describe_clusters(ClusterIdentifier=CLUSTER_IDENTIFIER)['Clusters'][0]['ClusterAvailabilityStatus'] != 'Available':
         False
+    
     else:
-        print('Cluster available!')
+        clusterProps = redshift.describe_clusters(ClusterIdentifier=CLUSTER_IDENTIFIER)['Clusters'][0]
+        clusterHost = clusterProps['Endpoint']['Address']
 
-myClusterProps = redshift.describe_clusters(ClusterIdentifier=CLUSTER_IDENTIFIER)['Clusters'][0]
+        print(f"{clusterHost} now available")
 
-HOST = myClusterProps['Endpoint']['Address']
+print("**********************************************")
+print("Adding Cluster endpoint to dwh.cfg file...")
 
-print("**********************************")
-print("Validation AWS Redshift connection")
+if len(DB_HOST) == 0:
+    try:
+        dwh_config_override = configparser.ConfigParser()
+        dwh_config_override.read("dwh.cfg")
 
-conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT))
-conn.close()
+        dwh_config_override["DB"]["DB_HOST"] = clusterHost
 
-print('Connected to Redshift!')
+        with open("dwh.cfg", "w") as configfile:
+            dwh_config_override.write(configfile)
+    
+        print("Cluster endpoint added to dwh.cfg")
 
-print("*************************************************************")
-print("Use the following for HOST and ARN variables in DWH Config:\n")
-print("*************************************************************")
+        dwh_config.read("dwh.cfg")
 
-print("[CLUSTER]")
-print("HOST=" + HOST + "\n")
-print("[IAM_ROLE]")
-print("ARN=" + ARN)
+        DB_HOST = dwh_config.get("DB","DB_HOST")
+
+    except Exception as e:
+        print(e)
+else:
+    print("Cluster endpoint already exists in dwh.cfg")
+    
+print("**********************************************")
+print("Specifying ingress rules to default sec group")
+
+try:
+    group_id = ec2_client.describe_security_groups()["SecurityGroups"][0]["GroupId"]
+    defaultSg = ec2.SecurityGroup(group_id)
+    defaultSg.authorize_ingress(
+        GroupName=defaultSg.group_name,
+        CidrIp='0.0.0.0/0',
+        IpProtocol='TCP',
+        FromPort=int(DB_PORT),
+        ToPort=int(DB_PORT)  
+    )
+
+except Exception as e:
+    print(e)
+    
+print("**********************************************")
+print("Validating cluster availability...")
+
+try:
+    conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT))
+    conn.close()
+
+    print("Successfully connected to cluster")
+
+except Exception as e:
+    print(e)
