@@ -3,9 +3,14 @@ import json
 import psycopg2
 import configparser
 import os
+import sys
 
+sys.path.append(os.getcwd())
+from util.config_functions import modify_config_file
+
+main_config_path = "dwh.cfg"
 main_config = configparser.ConfigParser()
-main_config.read("dwh.cfg")
+main_config.read(main_config_path)
 
 aws_creds_path = os.path.expanduser("~\\.aws\\credentials")
 aws_creds = configparser.ConfigParser()
@@ -22,7 +27,6 @@ NODE_TYPE             = main_config.get("CLUSTER","NODE_TYPE")
 NUM_NODES             = main_config.get("CLUSTER","NUM_NODES")
 
 # DATABASE
-DB_HOST               = main_config.get("DB","DB_HOST")
 DB_NAME               = main_config.get("DB","DB_NAME")
 DB_USER               = main_config.get("DB","DB_USER")
 DB_PASSWORD           = main_config.get("DB","DB_PASSWORD")
@@ -83,32 +87,17 @@ except Exception as e:
 print("**********************************************")
 print("Updating local .aws/config file with Role ARN")
 
-try:
-    aws_config["profile Redshift"]
-    print("Role ARN already exists in .aws/config")
+aws_profile = "profile Redshift"
+aws_config_key = "role_arn"
+role_arn = iam_client.get_role(RoleName=IAM_ROLE_NAME)['Role']['Arn']
 
-    IAM_ROLE_ARN = aws_config.get("profile Redshift","role_arn")
-    
-except:
-    try:
-        role_arn = iam_client.get_role(RoleName=IAM_ROLE_NAME)['Role']['Arn']
-
-        aws_config_override = configparser.ConfigParser()
-        aws_config_override.read(aws_config_path)
-
-        aws_config_override["profile Redshift"] = {"role_arn": role_arn}
-        
-        with open(aws_config_path, "w") as configfile:
-            aws_config_override.write(configfile)
-            
-        print("Role ARN added to .aws/config ")
-
-        aws_config.read(aws_config_path)
-
-        IAM_ROLE_ARN = aws_config.get("profile Redshift","role_arn")
-
-    except Exception as e:
-        print(e)
+modify_config_file(
+    config_file=aws_config_path,
+    config_obj=aws_config,
+    config_section=aws_profile,
+    config_key=aws_config_key,
+    config_val=role_arn
+)
 
 print("**********************************************")
 print("Attaching policies to IAM Role")
@@ -134,7 +123,7 @@ try:
         MasterUsername=DB_USER,
         MasterUserPassword=DB_PASSWORD,
         PubliclyAccessible=True,
-        IamRoles=[IAM_ROLE_ARN]
+        IamRoles=[role_arn]
     )
     
 except Exception as e:
@@ -159,26 +148,16 @@ else:
 print("**********************************************")
 print("Adding Cluster endpoint to dwh.cfg file...")
 
-if len(DB_HOST) == 0:
-    try:
-        main_config_override = configparser.ConfigParser()
-        main_config_override.read("dwh.cfg")
+main_config_section = "DB"
+main_config_key = "DB_HOST"
 
-        main_config_override["DB"]["DB_HOST"] = clusterHost
-
-        with open("dwh.cfg", "w") as configfile:
-            main_config_override.write(configfile)
-    
-        print("Cluster endpoint added to dwh.cfg")
-
-        main_config.read("dwh.cfg")
-
-        DB_HOST = main_config.get("DB","DB_HOST")
-
-    except Exception as e:
-        print(e)
-else:
-    print("Cluster endpoint already exists in dwh.cfg")
+modify_config_file(
+    config_file=main_config_path,
+    config_obj=main_config,
+    config_section=main_config_section,
+    config_key=main_config_key,
+    config_val=clusterHost
+)
     
 print("**********************************************")
 print("Specifying ingress rules to default sec group")
@@ -201,7 +180,7 @@ print("**********************************************")
 print("Validating cluster availability...")
 
 try:
-    conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT))
+    conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(clusterHost, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT))
     conn.close()
 
     print("Successfully connected to cluster")
