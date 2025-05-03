@@ -2,8 +2,9 @@ import configparser
 import os
 
 # CONFIG
+main_config_path = "dwh.cfg"
 main_config = configparser.ConfigParser()
-main_config.read('dwh.cfg')
+main_config.read(main_config_path)
 
 aws_config_path = os.path.expanduser("~\\.aws\\config")
 aws_config = configparser.ConfigParser()

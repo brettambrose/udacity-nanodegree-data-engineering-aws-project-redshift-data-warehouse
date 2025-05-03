@@ -2,7 +2,6 @@ import configparser
 import psycopg2
 from sql_queries import create_table_queries, drop_table_queries
 
-
 def drop_tables(cur, conn):
     """
     This function loops through the drop_table_queries list imported from sql_queries.py,
